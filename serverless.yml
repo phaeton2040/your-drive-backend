@@ -1,0 +1,143 @@
+service: your-drive
+frameworkVersion: '2'
+
+plugins:
+  - serverless-offline
+  - serverless-cloudside-plugin
+  - serverless-functions-base-path
+
+custom:
+  serviceName: your-drive
+  userPoolName: your-drive-user-pool
+  functionsBasePath: src/functions
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  lambdaHashingVersion: 20201221
+  region: eu-central-1
+  stage: ${self:opt.stage, 'dev'}
+  apiName: ${self:custom.serviceName}-${self:provider.stage}
+
+functions:
+  preSignUp:
+    handler: auth/pre-sign-up.handler
+    events:
+      - cognitoUserPool:
+          pool: ${self:custom.userPoolName}-${self:provider.stage}
+          trigger: PreSignUp
+          existing: true
+  signUp:
+    handler: auth/sign-up.handler
+    role: LambdaMainRole
+    environment:
+      APP_CLIENT_ID: !Ref UserPoolWebClient
+      BUCKET_NAME: !Ref UploadFileBucket
+    events:
+      - http:
+          path: /auth/sign-up
+          method: post
+          cors: true
+  signIn:
+    handler: auth/sign-in.handler
+    role: LambdaMainRole
+    environment:
+      APP_CLIENT_ID: !Ref UserPoolWebClient
+      USER_POOL: !Ref UserPool
+    events:
+      - http:
+          path: /auth/sign-in
+          method: post
+          cors: true
+  getUser:
+    handler: auth/get-user.handler
+    events:
+      - http:
+          path: /auth/user
+          method: post
+          cors: true
+  listDirectory:
+    handler: files/list-directory.handler
+    role: LambdaMainRole
+    environment:
+      BUCKET_NAME: !Ref UploadFileBucket
+    events:
+      - http:
+          path: /list
+          method: post
+          cors: true
+          authorizer:
+            name: authorizerFunc
+            identitySource: method.request.header.Authorization
+            type: token
+  authorizerFunc:
+    handler: auth/authorizer.handler
+    role: LambdaMainRole
+    environment:
+      BUCKET_NAME: !Ref UploadFileBucket
+
+resources:
+  Resources:
+    UserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: ${self:custom.userPoolName}-${self:provider.stage}
+        Policies:
+          PasswordPolicy:
+            MinimumLength: 8
+        UsernameAttributes:
+          - email
+        Schema:
+          - AttributeDataType: String
+            Name: email
+            Required: false
+    UserPoolWebClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        UserPoolId: !Ref UserPool
+        ClientName: UserPoolWebClient
+        GenerateSecret: false
+        ExplicitAuthFlows:
+          - ALLOW_ADMIN_USER_PASSWORD_AUTH
+          - ALLOW_USER_PASSWORD_AUTH
+          - ALLOW_USER_SRP_AUTH
+          - ALLOW_REFRESH_TOKEN_AUTH
+    UserPoolDomain:
+      Type: AWS::Cognito::UserPoolDomain
+      Properties:
+        Domain: your-drive
+        UserPoolId: !Ref UserPool
+    UploadFileBucket:
+        Type: AWS::S3::Bucket
+        Properties:
+          BucketName: ${self:custom.serviceName}-${self:provider.stage}-upload-bucket
+    LambdaMainRole:
+      Type: AWS::IAM::Role
+      Properties:
+        Path: /auth/role/
+        RoleName: LambdaMainRole
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action: sts:AssumeRole
+        ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/CloudWatchFullAccess
+        Policies:
+          - PolicyName: LambdaRolePolicy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - cognito-idp:AdminInitiateAuth
+                  Resource:
+                    - Fn::GetAtt: [ UserPool, 'Arn' ]
+                - Effect: Allow
+                  Action:
+                    - s3:*
+                  Resource:
+                    - Fn::GetAtt: [ UploadFileBucket, 'Arn' ]
