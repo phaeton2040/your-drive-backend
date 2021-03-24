@@ -1,7 +1,9 @@
 'use strict';
 const AWS = require('aws-sdk');
+const middy = require('@middy/core');
+const cors = require('@middy/http-cors');
 
-module.exports.handler = async (event) => {
+const signIn = async (event) => {
     const provider = new AWS.CognitoIdentityServiceProvider();
     const { username, password } = JSON.parse(event.body);
 
@@ -28,7 +30,6 @@ module.exports.handler = async (event) => {
             body: JSON.stringify(err),
         };
     }
+}
 
-    // Use this code if you don't use the http event with the LAMBDA-PROXY integration
-    // return { message: 'Go Serverless v1.0! Your function executed successfully!', event };
-};
+module.exports.handler = middy(signIn).use(cors());
