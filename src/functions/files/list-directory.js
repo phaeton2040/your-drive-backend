@@ -1,7 +1,9 @@
 'use strict';
 const AWS = require('aws-sdk');
+const middy = require('@middy/core');
+const cors = require('@middy/http-cors');
 
-module.exports.handler = async (event) => {
+const listDirectory = async (event) => {
     const s3 = new AWS.S3();
     const { directory } = JSON.parse(event.body);
     const { user } = event.requestContext.authorizer;
@@ -44,4 +46,6 @@ module.exports.handler = async (event) => {
         statusCode: 200,
         body: JSON.stringify([...folders, ...responseBody]),
     };
-};
+}
+
+module.exports.handler = middy(listDirectory).use(cors());

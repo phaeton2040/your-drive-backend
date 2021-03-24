@@ -1,7 +1,9 @@
 'use strict';
 const AWS = require('aws-sdk');
+const middy = require('@middy/core');
+const cors = require('@middy/http-cors');
 
-module.exports.handler = async (event) => {
+const getUser = async (event) => {
     const provider = new AWS.CognitoIdentityServiceProvider();
     const { token } = JSON.parse(event.body);
 
@@ -20,4 +22,6 @@ module.exports.handler = async (event) => {
             body: JSON.stringify(err),
         };
     }
-};
+}
+
+module.exports.handler = middy(getUser).use(cors());

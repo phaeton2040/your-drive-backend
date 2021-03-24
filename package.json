@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "description": "",
   "dependencies": {
+    "@middy/core": "^1.5.2",
+    "@middy/http-cors": "^1.5.2",
     "aws-sdk": "^2.864.0"
   },
   "devDependencies": {
