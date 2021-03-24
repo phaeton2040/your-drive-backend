@@ -12,6 +12,7 @@ module.exports.handler = async (event) => {
 
         return generatePolicy(user.Username, 'Allow', event.methodArn, user);
     } catch (err) {
+        console.log('Authorizer error:', err)
         return {
             statusCode: err.statusCode,
             body: {error: err.message},
@@ -40,6 +41,8 @@ const generatePolicy = function (principalId, effect, resource, user) {
     }
 
     // Optional output with custom properties of the String, Number or Boolean type.
-    authResponse.context = { user };
+    authResponse.context = { user: JSON.stringify(user) };
+
+    console.log('Authorizer response:', JSON.stringify(authResponse));
     return authResponse;
 }

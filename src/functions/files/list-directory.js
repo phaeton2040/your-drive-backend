@@ -5,47 +5,57 @@ const cors = require('@middy/http-cors');
 
 const listDirectory = async (event) => {
     const s3 = new AWS.S3();
-    const { directory } = JSON.parse(event.body);
-    const { user } = event.requestContext.authorizer;
-    const email = user.UserAttributes.find(attr => attr.Name === 'email').Value;
-    const prefix = `${email}/${directory}/`.replace('//', '/');
+    const {directory} = JSON.parse(event.body);
 
-    const listObjResult = await s3.listObjects({
-        Bucket: process.env.BUCKET_NAME,
-        Prefix: prefix,
-    }).promise();
+    try {
+        const user = JSON.parse(event.requestContext.authorizer.user);
+        console.log('User:', user);
 
-    const folderNames = new Set();
-    const responseBody = listObjResult.Contents
-        .filter(item => {
-            const name = item.Key.replace(prefix, '');
+        const email= user.UserAttributes.find(attr => attr.Name === 'email').Value;
+        const prefix = `${email}/${directory}/`.replace('//', '/');
 
-            if (name.includes('/')) {
-                folderNames.add(name.split('/')[0]);
-            }
+        const listObjResult = await s3.listObjects({
+            Bucket: process.env.BUCKET_NAME,
+            Prefix: prefix,
+        }).promise();
 
-            return item.Key !== prefix && !name.includes('/');
-        })
-        .map(item => {
-            const name = item.Key.replace(prefix, '');
+        const folderNames = new Set();
+        const responseBody = listObjResult.Contents
+            .filter(item => {
+                const name = item.Key.replace(prefix, '');
 
+                if (name.includes('/')) {
+                    folderNames.add(name.split('/')[0]);
+                }
+
+                return item.Key !== prefix && !name.includes('/');
+            })
+            .map(item => {
+                const name = item.Key.replace(prefix, '');
+
+                return {
+                    name,
+                    type: 'file',
+                    size: item.Size
+                }
+            });
+
+        const folders = Array.from(folderNames).map(folder => {
             return {
-                name,
-                type: 'file',
-                size: item.Size
+                name: folder,
+                type: 'directory'
             }
         });
-
-    const folders = Array.from(folderNames).map(folder => {
         return {
-            name: folder,
-            type: 'directory'
+            statusCode: 200,
+            body: JSON.stringify([...folders, ...responseBody]),
+        };
+    } catch (err) {
+        return {
+            statusCode: err.statusCode,
+            body: JSON.stringify(err)
         }
-    })
-    return {
-        statusCode: 200,
-        body: JSON.stringify([...folders, ...responseBody]),
-    };
+    }
 }
 
 module.exports.handler = middy(listDirectory).use(cors());
