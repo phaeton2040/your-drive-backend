@@ -183,8 +183,8 @@ resources:
                       - Ref: WebAppDistributionAccessIdentity
           Enabled: 'true'
           ## Uncomment the following section in case you are using a custom domain
-          # Aliases:
-          # - mysite.example.com
+          Aliases:
+            - drive.phaeton-group.net
           DefaultRootObject: index.html
           ## Since the Single Page App is taking care of the routing we need to make sure ever path is served with index.html
           ## The only exception are files that actually exist e.h. app.js, reset.css
@@ -212,7 +212,9 @@ resources:
             ViewerProtocolPolicy: redirect-to-https
           ## The certificate to use when viewers use HTTPS to request objects.
           ViewerCertificate:
-            CloudFrontDefaultCertificate: 'true'
+            AcmCertificateArn: arn:aws:acm:us-east-1:271210069304:certificate/143dba52-a863-4d96-a919-c0e1ad4c37ba
+            SslSupportMethod: sni-only
+            MinimumProtocolVersion: TLSv1
     WebAppDistributionAccessIdentity:
       Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
       Properties:
