@@ -30,7 +30,7 @@ const policy = {
     ]
 }
 const context = {
-    user: userObject
+    user: JSON.stringify(userObject)
 }
 const errorResponse = {
     "message": "Access Token has expired",

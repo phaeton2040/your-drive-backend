@@ -40,7 +40,7 @@ test('List directory', async () => {
         }),
         requestContext: {
             authorizer: {
-                user: {
+                user: JSON.stringify({
                     "Username": "d0f9cd64-f514-43c8-8b90-350375ebcad9",
                     "UserAttributes": [
                         {
@@ -56,7 +56,7 @@ test('List directory', async () => {
                             "Value": "test@test.com"
                         }
                     ]
-                }
+                })
             }
         }
     }
