@@ -1,7 +1,9 @@
 'use strict';
+
 const AWS = require('aws-sdk');
 const middy = require('@middy/core');
 const cors = require('@middy/http-cors');
+const DirectoryService = require('../../services/directory-service');
 
 const signUp = async (event) => {
     const provider = new AWS.CognitoIdentityServiceProvider();
@@ -20,6 +22,7 @@ const signUp = async (event) => {
                 }
             ]
         }).promise();
+        const directory = new DirectoryService(username);
 
         await s3.putObject({
             Key: `${username}/`,

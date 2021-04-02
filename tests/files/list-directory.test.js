@@ -1,38 +1,34 @@
 const AWS = require('aws-sdk');
 const listDirectory = require('../../src/functions/files/list-directory');
+let DirectoryService = require('../../src/services/directory-service');
 
-let listObjectsSpy;
+jest.mock('../../src/services/directory-service', () => jest.fn());
 
-const mockPositive = () => {
-    listObjectsSpy = jest.fn();
+let listDirectorySpy = jest.fn().mockImplementation(() => {
+    return Promise.resolve({
+        Items: [
+            {
+                name: 'src',
+                path: '/'
+            },
+            {
+                name: 'index.html',
+                path: '/'
+            }
+        ]
+    });
+});
 
-    AWS.S3 = jest.fn().mockImplementation(() => {
-        return {
-            listObjects: listObjectsSpy.mockImplementation(() => {
-                return {
-                    promise: () => Promise.resolve({
-                        Contents: [
-                            {
-                                Key: 'app',
-                                Size: 0
-                            },
-                            {
-                                Key: 'index.html',
-                                Size: 504
-                            }
-                        ]
-                    })
-                }
-            })
-        }
-    })
-}
+
+DirectoryService.mockImplementation(() => {
+    return {
+        listDirectory: listDirectorySpy
+    }
+})
 
 process.env.BUCKET_NAME = 'test-bucket';
 
 test('List directory', async () => {
-    mockPositive();
-
     const handler = listDirectory.handler;
     const event = {
         body: JSON.stringify({
@@ -62,17 +58,15 @@ test('List directory', async () => {
     }
     const response = await handler(event);
 
-    expect(listObjectsSpy).toHaveBeenCalled()
+    expect(listDirectorySpy).toHaveBeenCalled()
     expect(response.statusCode).toEqual(200);
     expect(response.body).toEqual(JSON.stringify([
         {
-            "name": "app",
-            "type": "file",
-            "size": 0
+            "name": "src",
+            "path": "/"
         }, {
             "name": "index.html",
-            "type": "file",
-            "size": 504
+            "path": "/",
         }])
     );
 })
