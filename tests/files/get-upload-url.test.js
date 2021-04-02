@@ -1,37 +1,25 @@
-const listDirectory = require('../../src/functions/files/list-directory');
+const getUploadUrl = require('../../src/functions/files/get-upload-url');
 let DirectoryService = require('../../src/services/directory-service');
 
 jest.mock('../../src/services/directory-service', () => jest.fn());
 
-let listDirectorySpy = jest.fn().mockImplementation(() => {
-    return Promise.resolve({
-        Items: [
-            {
-                name: 'src',
-                path: '/'
-            },
-            {
-                name: 'index.html',
-                path: '/'
-            }
-        ]
-    });
+let getUploadUrlSpy = jest.fn().mockImplementation(() => {
+    return Promise.resolve('https://presigned-url');
 });
-
 
 DirectoryService.mockImplementation(() => {
     return {
-        listDirectory: listDirectorySpy
+        getUploadUrl: getUploadUrlSpy
     }
 })
 
 process.env.BUCKET_NAME = 'test-bucket';
 
-test('List directory', async () => {
-    const handler = listDirectory.handler;
+test('Get upload url', async () => {
+    const handler = getUploadUrl.handler;
     const event = {
         body: JSON.stringify({
-            directory: 'src/'
+            fileName: 'index.html'
         }),
         requestContext: {
             authorizer: {
@@ -57,15 +45,7 @@ test('List directory', async () => {
     }
     const response = await handler(event);
 
-    expect(listDirectorySpy).toHaveBeenCalled()
+    expect(getUploadUrlSpy).toHaveBeenCalled()
     expect(response.statusCode).toEqual(200);
-    expect(response.body).toEqual(JSON.stringify([
-        {
-            "name": "src",
-            "path": "/"
-        }, {
-            "name": "index.html",
-            "path": "/",
-        }])
-    );
+    expect(response.body).toEqual(JSON.stringify('https://presigned-url'));
 })
