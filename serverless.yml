@@ -282,6 +282,8 @@ resources:
             AttributeType: S
           - AttributeName: name
             AttributeType: S
+          - AttributeName: user
+            AttributeType: S
         KeySchema:
           - AttributeName: name
             KeyType: HASH
