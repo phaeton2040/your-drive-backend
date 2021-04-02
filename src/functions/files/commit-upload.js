@@ -4,21 +4,19 @@ const middy = require('@middy/core');
 const cors = require('@middy/http-cors');
 const DirectoryService = require('../../services/directory-service');
 
-const createDirectory = async (event) => {
-    const { directory, path } = JSON.parse(event.body);
+const commitUpload = async (event) => {
+    const { fileName, path } = JSON.parse(event.body);
 
     try {
         const user = JSON.parse(event.requestContext.authorizer.user);
-        console.log('User:', user);
-
         const email = user.UserAttributes.find(attr => attr.Name === 'email').Value;
         const directoryService = new DirectoryService(email);
 
-        const result = await directoryService.createEntry(directory, path || '/', 'directory');
-
+        await directoryService.createEntry(
+            fileName, path, 'file'
+        )
         return {
-            statusCode: 200,
-            body: JSON.stringify(result),
+            statusCode: 200
         };
     } catch (err) {
         return {
@@ -28,4 +26,4 @@ const createDirectory = async (event) => {
     }
 }
 
-module.exports.handler = middy(createDirectory).use(cors());
+module.exports.handler = middy(commitUpload).use(cors());

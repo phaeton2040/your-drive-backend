@@ -89,6 +89,36 @@ functions:
             name: authorizerFunc
             identitySource: method.request.header.Authorization
             type: token
+  getUploadUrl:
+    handler: files/get-upload-url.handler
+    role: LambdaMainRole
+    environment:
+      BUCKET_NAME: !Ref UploadFileBucket
+      TABLE_NAME: ${self:custom.filesTableName}
+    events:
+      - http:
+          path: /directory/uploadUrl
+          method: post
+          cors: true
+          authorizer:
+            name: authorizerFunc
+            identitySource: method.request.header.Authorization
+            type: token
+  commitUpload:
+    handler: files/commit-upload.handler
+    role: LambdaMainRole
+    environment:
+      BUCKET_NAME: !Ref UploadFileBucket
+      TABLE_NAME: ${self:custom.filesTableName}
+    events:
+      - http:
+          path: /directory/commit
+          method: post
+          cors: true
+          authorizer:
+            name: authorizerFunc
+            identitySource: method.request.header.Authorization
+            type: token
   authorizerFunc:
     handler: auth/authorizer.handler
     role: LambdaMainRole

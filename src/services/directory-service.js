@@ -5,6 +5,7 @@ module.exports = class DirectoryService {
     constructor(username) {
         this.username = username;
         this.db = new AWS.DynamoDB.DocumentClient();
+        this.s3Client = new AWS.S3();
     }
 
     async listDirectory(directory) {
@@ -24,7 +25,7 @@ module.exports = class DirectoryService {
         }).promise();
     }
 
-    async createDirectory(name, path) {
+    async createEntry(name, path, type = 'directory') {
         path = `${this.username}/${path}/`.replace(/\/+/g, '/');
 
         return await this.db.put({
@@ -32,11 +33,19 @@ module.exports = class DirectoryService {
             Item: {
                 path,
                 name,
-                type: 'directory',
+                type,
                 user: this.username,
                 created: new Date().toISOString(),
                 updated: new Date().toISOString()
             }
         }).promise();
+    }
+
+    getUploadUrl(fileName) {
+        return this.s3Client.getSignedUrlPromise('putObject', {
+            Key: `${this.username}/${fileName}`.replace(/\/+/g, '/'),
+            Bucket: process.env.BUCKET_NAME,
+            Expires: 3600,
+        });
     }
 }
