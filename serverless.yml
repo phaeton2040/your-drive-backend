@@ -11,6 +11,7 @@ custom:
   userPoolName: your-drive-user-pool
   functionsBasePath: src/functions
   s3Bucket: ${self:custom.serviceName}-${self:provider.stage}-frontend
+  filesTableName: ${self:custom.serviceName}-${self:provider.stage}-files
 
 provider:
   name: aws
@@ -34,6 +35,7 @@ functions:
     environment:
       APP_CLIENT_ID: !Ref UserPoolWebClient
       BUCKET_NAME: !Ref UploadFileBucket
+      TABLE_NAME: ${self:custom.filesTableName}
     events:
       - http:
           path: /auth/sign-up
@@ -62,9 +64,25 @@ functions:
     role: LambdaMainRole
     environment:
       BUCKET_NAME: !Ref UploadFileBucket
+      TABLE_NAME: ${self:custom.filesTableName}
     events:
       - http:
-          path: /list
+          path: /directory/list
+          method: post
+          cors: true
+          authorizer:
+            name: authorizerFunc
+            identitySource: method.request.header.Authorization
+            type: token
+  createDirectory:
+    handler: files/create-directory.handler
+    role: LambdaMainRole
+    environment:
+      BUCKET_NAME: !Ref UploadFileBucket
+      TABLE_NAME: ${self:custom.filesTableName}
+    events:
+      - http:
+          path: /directory/create
           method: post
           cors: true
           authorizer:
@@ -142,6 +160,11 @@ resources:
                     - s3:*
                   Resource:
                     - Fn::GetAtt: [ UploadFileBucket, 'Arn' ]
+                - Effect: Allow
+                  Action:
+                    - dynamodb:*
+                  Resource:
+                    - Fn::GetAtt: [ FilesTable, 'Arn' ]
     WebAppS3Bucket:
       Type: AWS::S3::Bucket
       Properties:
@@ -220,3 +243,30 @@ resources:
       Properties:
         CloudFrontOriginAccessIdentityConfig:
           Comment: "An identity to access web app s3 bucket"
+    FilesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.filesTableName}
+        AttributeDefinitions:
+          - AttributeName: path
+            AttributeType: S
+          - AttributeName: name
+            AttributeType: S
+        KeySchema:
+          - AttributeName: name
+            KeyType: HASH
+          - AttributeName: path
+            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+        GlobalSecondaryIndexes:
+          - IndexName: path-index
+            KeySchema:
+              - AttributeName: path
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 5
+              WriteCapacityUnits: 5

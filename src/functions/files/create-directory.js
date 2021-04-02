@@ -4,8 +4,8 @@ const middy = require('@middy/core');
 const cors = require('@middy/http-cors');
 const DirectoryService = require('../../services/directory-service');
 
-const listDirectory = async (event) => {
-    const { directory } = JSON.parse(event.body);
+const createDirectory = async (event) => {
+    const { directory, path } = JSON.parse(event.body);
 
     try {
         const user = JSON.parse(event.requestContext.authorizer.user);
@@ -14,15 +14,11 @@ const listDirectory = async (event) => {
         const email = user.UserAttributes.find(attr => attr.Name === 'email').Value;
         const directoryService = new DirectoryService(email);
 
-        const directoryContent = (await directoryService.listDirectory(directory)).Items;
+        const result = await directoryService.createDirectory(directory, path || '/');
 
         return {
             statusCode: 200,
-            body: JSON.stringify(directoryContent.map(item => {
-                item.path = item.path.replace(new RegExp(`^(${email})`, 'gm'), '');
-
-                return item;
-            })),
+            body: JSON.stringify(result),
         };
     } catch (err) {
         return {
@@ -32,4 +28,4 @@ const listDirectory = async (event) => {
     }
 }
 
-module.exports.handler = middy(listDirectory).use(cors());
+module.exports.handler = middy(createDirectory).use(cors());
