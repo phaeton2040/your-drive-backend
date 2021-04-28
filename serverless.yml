@@ -89,6 +89,21 @@ functions:
             name: authorizerFunc
             identitySource: method.request.header.Authorization
             type: token
+  deleteDirectory:
+    handler: files/delete-directory.handler
+    role: LambdaMainRole
+    environment:
+      BUCKET_NAME: !Ref UploadFileBucket
+      TABLE_NAME: ${self:custom.filesTableName}
+    events:
+      - http:
+          path: /directory/delete
+          method: post
+          cors: true
+          authorizer:
+            name: authorizerFunc
+            identitySource: method.request.header.Authorization
+            type: token
   getUploadUrl:
     handler: files/get-upload-url.handler
     role: LambdaMainRole
@@ -284,6 +299,8 @@ resources:
             AttributeType: S
           - AttributeName: user
             AttributeType: S
+          - AttributeName: deletedAt
+            AttributeType: S
         KeySchema:
           - AttributeName: name
             KeyType: HASH
@@ -297,6 +314,8 @@ resources:
             KeySchema:
               - AttributeName: path
                 KeyType: HASH
+              - AttributeName: deletedAt
+                KeyType: RANGE
             Projection:
               ProjectionType: ALL
             ProvisionedThroughput:
