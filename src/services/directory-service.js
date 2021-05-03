@@ -5,7 +5,7 @@ module.exports = class DirectoryService {
     constructor(username) {
         this.username = username;
         this.db = new AWS.DynamoDB.DocumentClient();
-        this.s3Client = new AWS.S3();
+        this.s3Client = new AWS.S3({ signatureVersion: 'v4' });
     }
 
     async listDirectory(directory) {

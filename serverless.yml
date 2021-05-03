@@ -204,7 +204,7 @@ resources:
                   Action:
                     - s3:*
                   Resource:
-                    - Fn::GetAtt: [ UploadFileBucket, 'Arn' ]
+                    - Fn::Join: [ '', [ Fn::GetAtt: [ UploadFileBucket, 'Arn' ], '/*' ] ]
                 - Effect: Allow
                   Action:
                     - dynamodb:*
