@@ -209,7 +209,8 @@ resources:
                   Action:
                     - dynamodb:*
                   Resource:
-                    - Fn::Join: [ '', [ Fn::GetAtt: [ FilesTable, 'Arn' ], '/*' ] ]
+                    - Fn::GetAtt: [ FilesTable, 'Arn' ]
+                    - Fn::Join: [ '', [ Fn::GetAtt: [ FilesTable, 'Arn' ], '/index/*' ] ]
     WebAppS3Bucket:
       Type: AWS::S3::Bucket
       Properties:
